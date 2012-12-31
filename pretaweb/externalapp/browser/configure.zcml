@@ -1,0 +1,19 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="pretaweb.externalapp">
+
+  <include package="plone.app.contentmenu" />
+
+  <browser:page
+      for="..interfaces.IExternalApp"
+      name="view"
+      class=".externalapp.ExternalAppView"
+      permission="zope2.View"
+      />
+
+  <adapter factory=".traverse.ExternalAppTraverser" />
+
+  <!-- -*- extra stuff goes here -*- -->
+
+</configure>

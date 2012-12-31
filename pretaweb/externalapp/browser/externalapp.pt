@@ -1,0 +1,7 @@
+<metal:master use-macro="context/main_template/macros/master">
+
+<tal:if condition="options/body|nothing">
+<div metal:fill-slot="content-core" tal:content="options/body|nothing" />
+</tal:if>
+
+</metal:master>

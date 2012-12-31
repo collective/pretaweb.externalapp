@@ -1,0 +1,2 @@
+recursive-include pretaweb *
+global-exclude *pyc
