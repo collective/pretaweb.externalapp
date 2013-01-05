@@ -54,9 +54,11 @@ setup(name='pretaweb.externalapp',
       namespace_packages=['pretaweb', ],
       include_package_data=True,
       zip_safe=False,
-      install_requires=['setuptools',
-                        # -*- Extra requirements: -*-
-                        ],
+      install_requires=[
+          'setuptools',
+          # -*- Extra requirements: -*-
+          'WSGIProxy',
+      ],
       tests_require=tests_require,
       extras_require=dict(tests=tests_require),
       test_suite='pretaweb.externalapp.tests.test_docs.test_suite',
@@ -64,6 +66,8 @@ setup(name='pretaweb.externalapp',
       # -*- entry_points -*-
       [z3c.autoinclude.plugin]
       target = plone
+      [paste.filter_app_factory]
+      external_app = pretaweb.externalapp.wsgi.externalapp:make_externalapp_middleware
       """,
       setup_requires=["PasteScript"],
       paster_plugins=["ZopeSkel"],

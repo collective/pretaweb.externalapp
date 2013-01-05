@@ -1,5 +1,7 @@
 """Main product initializer
 """
+from wsgi.externalapp import ExternalAppMiddleware, make_externalapp_middleware
+
 
 from zope.i18nmessageid import MessageFactory
 from pretaweb.externalapp import config
@@ -12,7 +14,6 @@ from Products.CMFCore import utils
 # like _(u"message") will then be extracted by i18n tools for translation.
 
 externalappMessageFactory = MessageFactory('pretaweb.externalapp')
-
 
 def initialize(context):
     """Initializer called when used as a Zope 2 product.
