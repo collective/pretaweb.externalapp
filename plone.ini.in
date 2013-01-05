@@ -1,0 +1,16 @@
+[app:zope]
+use = egg:Zope2#main
+zope_conf = %(here)s/parts/instance/etc/zope.conf
+
+[pipeline:main]
+pipeline =
+    egg:paste#evalerror
+    egg:repoze.retry#retry
+    egg:repoze.tm2#tm
+    egg:pretaweb.externalapp#external_app
+    zope
+
+[server:main]
+use = egg:paste#http
+host = localhost
+port = 8087
