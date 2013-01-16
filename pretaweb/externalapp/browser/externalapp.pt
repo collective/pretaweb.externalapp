@@ -1,7 +1,17 @@
 <metal:master use-macro="context/main_template/macros/master">
 
-<tal:if condition="options/body|nothing">
-<div metal:fill-slot="content-core" tal:content="options/body|nothing" />
-</tal:if>
+<div metal:fill-slot="content-core">
+<tal:defines define="body options/body|nothing">
+
+  <div tal:replace="structure body"
+       tal:condition="body">Page Body</div>
+
+  <a title=""
+     href="#"
+     tal:attributes="href string:${context/absolute_url}/app"
+     tal:condition="not:body">Launch App</a>
+
+</tal:defines>
+</div>
 
 </metal:master>

@@ -16,12 +16,12 @@ DEFAULT_DIAZO_RULES = """
 
         <!-- Absolute Link -->
         <xsl:when test="starts-with(@action, $external_app_url)">
-          <xsl:attribute name="action"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@action,  string-length($external_app_url)+2)" /></xsl:attribute>
+          <xsl:attribute name="action"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@action,  string-length($external_app_url)+1)" /></xsl:attribute>
         </xsl:when>
 
         <!-- Relative Link starting from / -->
         <xsl:when test="starts-with(@action, '/')">
-          <xsl:attribute name="action"><xsl:value-of select="$app_url" />.<xsl:value-of select="@action" /></xsl:attribute>
+          <xsl:attribute name="action"><xsl:value-of select="$app_url" /><xsl:value-of select="@action" /></xsl:attribute>
         </xsl:when>
 
         <!-- Else: only add app part -->
@@ -30,7 +30,14 @@ DEFAULT_DIAZO_RULES = """
         </xsl:otherwise>
       </xsl:choose>
 
+      <!-- TODO: make nested tags transformed as well -->
+      <xsl:apply-templates select="a" />
+
       <xsl:copy-of select="@*[name()!='action']|node()" />
+<!--
+        <xsl:apply-templates select="*[@href][name()!='base']" />
+        <xsl:apply-templates select="*[@src]" />-->
+<!--      </xsl:copy-of>-->
     </xsl:copy>
   </xsl:template>
 
@@ -43,12 +50,12 @@ DEFAULT_DIAZO_RULES = """
 
         <!-- Absolute Link -->
         <xsl:when test="starts-with(@href, $external_app_url)">
-          <xsl:attribute name="href"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@href,  string-length($external_app_url)+2)" /></xsl:attribute>
+          <xsl:attribute name="href"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@href,  string-length($external_app_url)+1)" /></xsl:attribute>
         </xsl:when>
 
         <!-- Relative Link starting from / -->
         <xsl:when test="starts-with(@href, '/')">
-          <xsl:attribute name="href"><xsl:value-of select="$app_url" />.<xsl:value-of select="@href" /></xsl:attribute>
+          <xsl:attribute name="href"><xsl:value-of select="$app_url" /><xsl:value-of select="@href" /></xsl:attribute>
         </xsl:when>
 
         <!-- Else: copy it as it is -->
@@ -71,12 +78,12 @@ DEFAULT_DIAZO_RULES = """
 
         <!-- Absolute Link -->
         <xsl:when test="starts-with(@src, $external_app_url)">
-          <xsl:attribute name="src"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@src,  string-length($external_app_url)+2)" /></xsl:attribute>
+          <xsl:attribute name="src"><xsl:value-of select="$app_url" /><xsl:value-of select="substring(@src,  string-length($external_app_url)+1)" /></xsl:attribute>
         </xsl:when>
 
         <!-- Relative Link starting from / -->
         <xsl:when test="starts-with(@src, '/')">
-          <xsl:attribute name="src"><xsl:value-of select="$app_url" />.<xsl:value-of select="@src" /></xsl:attribute>
+          <xsl:attribute name="src"><xsl:value-of select="$app_url" /><xsl:value-of select="@src" /></xsl:attribute>
         </xsl:when>
 
         <!-- Else: copy it as it is -->

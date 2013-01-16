@@ -2,7 +2,6 @@ from lxml import etree
 from StringIO import StringIO
 
 from webob import Request
-from paste.proxy import Proxy
 from wsgiproxy.app import WSGIProxyApp
 from wsgiproxy.middleware import WSGIProxyMiddleware
 from diazo.compiler import compile_theme
@@ -10,6 +9,11 @@ from diazo.compiler import compile_theme
 from Products.CMFPlone.utils import safe_unicode
 from .rules import DEFAULT_DIAZO_RULES
 
+# TODO: fix <base> tag either on plone level with custom viewlet or with diazo
+# rules, so we always have /app/ and if needed sub-path to current page within
+# external app to make all relative urls on a page work
+
+# TODO: handle at least Basic authentication
 
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required
@@ -17,71 +21,86 @@ class ExternalAppMiddleware(object):
     to response body.
     """
 
-    # TODO: handle errors during proxy fetch and xslt transformation
-    # TODO: make proxy url and prefix configured
-
     def __init__(self, app):
         self.app = app
 
     def __call__(self, environ, start_response):
-        self.prefix = '/externalapp/news'
-        self.proxy_url = 'http://www.test.com'
-        self._orig_environ = environ.copy()
-        
-        # call application to get headers and decide what to do next
-        # main_app_status, main_app_headers = None, None
-        # def fake_start_response(status, headers, exc_info=None):
-        #     main_app_status = status
-        #     main_app_headers = headers
+        # get response from main app
+        req = Request(environ.copy())
+        resp = req.get_response(self.app)
 
-        # req = Request(environ)
-        # resp = req.get_response(self.app)
-        # if 
+        # this will tell us if we need to proxy request or not
+        proxy_url, prefix = self._proxy_app_url(req, resp)
 
-        
-        # apply proxy only to news section
-        if environ['PATH_INFO'].startswith(self.prefix):
-            proxy = WSGIProxyApp(self.proxy_url)
-            middleware = WSGIProxyMiddleware(proxy, pop_prefix=self.prefix)
-            req = Request(environ)
-            resp = req.get_response(middleware)
+        # default response from main app, no proxy needed
+        if not proxy_url:
+            return resp(environ, start_response)
 
-            # ignore redirects
-            resp.location = None
+        # do proxy stuff
+        # TODO: fix REFERER, HTTP_ORIGIN, etc... headers to point to original
+        # external app url if needed
+        # TODO: wrap it all into try/except and display main app page with
+        # traceback in it
+        proxy = WSGIProxyApp(proxy_url)
+        middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix)
 
-            # apply transformation
-            resp = self._transform(resp, self._orig_environ)
-        else:
-            req = Request(environ)
-            resp = req.get_response(self.app)
+        # after main app read input restore file pointer so proxy can still
+        # read all post data
+        environ['wsgi.input'].seek(0)
 
-        return resp(self._orig_environ, start_response)
+        proxy_req = Request(environ.copy())
+        proxy_resp = proxy_req.get_response(middleware)
 
-    def _transform(self, response, environ):
+        # ignore redirects
+        # TODO: redirect only when location is within proxy_url
+        proxy_resp.location = None
+
+        # apply transformation
+        # TODO: wrap it all into try/except and display main app page with
+        # traceback in it
+        proxy_resp = self._transform(proxy_resp, resp, req, proxy_url, prefix)
+
+        return proxy_resp(environ, start_response)
+
+    def _proxy_app_url(self, request, response):
+        """Returns root proxy app url and traversal path to exteranl app within
+        main application.
+        """
+        url = prefix = None
+        if response.headers.get('X-PROXY-TO'):
+            url, prefix = response.headers['X-PROXY-TO'].split('||')
+            # make sure our proxy url has no trailing slash
+            if url.endswith('/'):
+                url = url[:-1]
+        return url, prefix
+
+    def _transform(self, response, main_response, req, proxy_url, prefix):
+        """Applies xslt transformation to proxied page.
+
+        @response - response from proxied app
+        @main_response - response from main application, we use it to get main
+          page layout for transformation to apply, as theme for diazo
+        @req - original request made by user from inside our main app
+        @proxy_url - external application url
+        @prefix - path to embedded external application within our main app
+        """
         # do not transform non html reponse
         if not response.content_type or \
            not response.content_type.startswith('text/html'):
             return response
 
         # prepare rules file
+        # TODO: get diazo rules from External Application content object
         rules = StringIO(safe_unicode(DEFAULT_DIAZO_RULES))
 
         # prepare theme file which is our application template
-        path = environ['PATH_INFO']
-        environ['PATH_INFO'] = self.prefix
-        req = Request(environ)
-        theme = ''.join(self.app(environ, lambda x,y:None))
-        environ['PATH_INFO'] = path
-        theme = StringIO(safe_unicode(theme))
+        theme = StringIO(safe_unicode(main_response.body))
 
         # compile our theme
-        absolute_prefix = '%s%s/' % (req.host_url, self.prefix)
         compiled_theme = compile_theme(rules, theme,
-            absolute_prefix=absolute_prefix,
-            # absolute_prefix='',
             xsl_params={
-                'external_app_url': self.proxy_url,
-                'app_url': absolute_prefix,
+                'external_app_url': proxy_url,
+                'app_url': req.host_url + prefix,
                 'url': req.path_url,
                 'path': req.path,
                 'base_url': req.path_url
