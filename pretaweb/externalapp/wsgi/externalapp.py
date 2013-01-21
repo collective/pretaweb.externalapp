@@ -1,3 +1,5 @@
+import gzip
+from urlparse import urlparse
 from lxml import etree
 from StringIO import StringIO
 
@@ -13,7 +15,8 @@ from .rules import DEFAULT_DIAZO_RULES
 # rules, so we always have /app/ and if needed sub-path to current page within
 # external app to make all relative urls on a page work
 
-# TODO: handle at least Basic authentication
+# TODO: handle at least Basic authentication, or set headers for user, roles and
+# groups for external app to accept and login our users
 
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required
@@ -42,7 +45,9 @@ class ExternalAppMiddleware(object):
         # TODO: wrap it all into try/except and display main app page with
         # traceback in it
         proxy = WSGIProxyApp(proxy_url)
-        middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix)
+        o = urlparse(proxy_url)
+        middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix,
+            scheme=o.scheme, domain=o.hostname, port=(o.port or '80'))
 
         # after main app read input restore file pointer so proxy can still
         # read all post data
@@ -109,7 +114,7 @@ class ExternalAppMiddleware(object):
         transform = etree.XSLT(compiled_theme)
 
         # prepare content page which is external app page
-        content = StringIO(safe_unicode(response.body))
+        content = StringIO(safe_unicode(self._get_response_body(response)))
         content = etree.parse(content, etree.HTMLParser())
 
         # finally apply transformation
@@ -117,6 +122,18 @@ class ExternalAppMiddleware(object):
         output = etree.tostring(transformed)
         response.body = output
         return response
+
+    def _get_response_body(self, response):
+        """If in gzip, then unzip it"""
+        body = response.body
+        if response.headers.get('Content-Encoding') == 'gzip':
+            gzipper = gzip.GzipFile(fileobj=StringIO(body))
+            body = gzipper.read()
+
+            # fix headers
+            # response.headers['Content-Encoding'] = None
+
+        return body
 
 def make_externalapp_middleware(app, global_conf=None, **kw):
     return ExternalAppMiddleware(app, **kw)
