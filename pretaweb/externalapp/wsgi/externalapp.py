@@ -131,7 +131,7 @@ class ExternalAppMiddleware(object):
             body = gzipper.read()
 
             # fix headers
-            # response.headers['Content-Encoding'] = None
+            response.headers['Content-Encoding'] = None
 
         return body
 
