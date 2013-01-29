@@ -15,8 +15,8 @@ from .rules import DEFAULT_DIAZO_RULES
 # rules, so we always have /app/ and if needed sub-path to current page within
 # external app to make all relative urls on a page work
 
-# TODO: handle at least Basic authentication, or set headers for user, roles and
-# groups for external app to accept and login our users
+# TODO: set headers for user, roles and groups for external app to accept and
+# login our users
 
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required

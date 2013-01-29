@@ -11,6 +11,5 @@ class ExternalAppView(BrowserView):
             # set http headers to use in proxy wsgi middleware
             # TODO: ensure prefix is proper in virtual host setup
             self.request.response.setHeader('X-PROXY-TO', '%s||%s' %
-                (self.context.url, '%s/app' %
-                '/'.join(self.context.getPhysicalPath())))
+                (self.context.url, '/'.join(self.context.getPhysicalPath())))
         return self.template()
