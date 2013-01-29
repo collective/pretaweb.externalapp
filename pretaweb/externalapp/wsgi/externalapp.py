@@ -15,8 +15,6 @@ from .rules import DEFAULT_DIAZO_RULES
 # rules, so we always have /app/ and if needed sub-path to current page within
 # external app to make all relative urls on a page work
 
-# TODO: set headers for user, roles and groups for external app to accept and
-# login our users
 
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required
@@ -40,8 +38,6 @@ class ExternalAppMiddleware(object):
             return resp(environ, start_response)
 
         # do proxy stuff
-        # TODO: fix REFERER, HTTP_ORIGIN, etc... headers to point to original
-        # external app url if needed
         # TODO: wrap it all into try/except and display main app page with
         # traceback in it
         proxy = WSGIProxyApp(proxy_url)
@@ -54,6 +50,7 @@ class ExternalAppMiddleware(object):
         environ['wsgi.input'].seek(0)
 
         proxy_req = Request(environ.copy())
+        self._copy_user_headers(resp, proxy_req)
         proxy_resp = proxy_req.get_response(middleware)
 
         # ignore redirects
@@ -78,6 +75,13 @@ class ExternalAppMiddleware(object):
             if url.endswith('/'):
                 url = url[:-1]
         return url, prefix
+
+    def _copy_user_headers(self, _from, _to):
+        """Copies user related headers from response to request"""
+        for header in ('X-ZOPE-USER', 'X-ZOPE-USER-GROUPS',
+            'X-ZOPE-USER-ROLES'):
+            if _from.headers.get(header):
+                _to.headers[header] = _from.headers[header]
 
     def _transform(self, response, main_response, req, proxy_url, prefix):
         """Applies xslt transformation to proxied page.
