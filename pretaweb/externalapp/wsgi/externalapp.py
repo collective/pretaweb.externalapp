@@ -35,15 +35,14 @@ class ExternalAppMiddleware(object):
         resp = req.get_response(self.app)
 
         # this will tell us if we need to proxy request or not
-        # TODO: this data we should get from ssi includes
-        proxy_url, prefix = self._proxy_app_url(req, resp)
+        prefix = self._proxy_app_prefix(req, resp)
 
         # default response from main app, no proxy needed
-        if not proxy_url:
+        if not prefix:
             return resp(environ, start_response)
 
-        # after main app read input restore file pointer so we can check for
-        # includes
+        # after main app read input restore file pointer
+        # so we can check for includes
         environ['wsgi.input'].seek(0)
 
         # extract SSI includes to see if we need to anything at all
@@ -51,29 +50,84 @@ class ExternalAppMiddleware(object):
         if not includes:
             return resp(environ, start_response)
 
-        # do proxy stuff
-        proxy_resp = self._do_proxy_call(environ, resp, proxy_url, prefix)
-
-        # inject SSI includes
-        proxy_resp = self._inject_ssi_includes(includes, proxy_resp, resp)
+        # parse, fetch and inject SSI includes
+        proxy_resp = self._inject_ssi_includes(environ, includes, resp, prefix)
 
         return proxy_resp(environ, start_response)
 
-    def _inject_ssi_includes(self, includes, proxy_resp, app_resp):
+    def _proxy_app_prefix(self, request, response):
+        """Returns proxy app prefix: traversal path to exteranl app within
+        main application.
+        """
+        prefix = None
+        if response.headers.get('X-PROXY-PREFIX'):
+            prefix = response.headers['X-PROXY-PREFIX']
+        return prefix
+
+    def _extract_ssi_includes(self, request, response):
+        # do not parse if non html response
+        if not response.content_type or \
+           not response.content_type.startswith('text/html'):
+            return []
+
+        # get external app url from include
+        includes = []
+        for include in re.finditer(INCLUDE_PATTERN,
+            safe_unicode(response.body)):
+            virtual = unquote(include.group(1))
+
+            # extract xpath, if no xpath found - insert full page body
+            if u'filter_xpath' in virtual:
+                xpath = virtual[
+                    virtual.index(u'filter_xpath')+len(u'filter_xpath='):]
+                url = virtual[:virtual.index(u'filter_xpath')]
+            else:
+                xpath = u'//body'
+                url = virtual
+
+            # parse url: http://external.app.url/path/%(externalapp_sub_path)s
+            if u'/%(externalapp_sub_path)s' in url:
+                url = url[:url.rindex(u'/%(externalapp_sub_path)s')]
+
+            includes.append({
+                'include': include.group(0),
+                'url': url,
+                'xpath': xpath,
+            })
+
+        return includes
+
+    def _inject_ssi_includes(self, environ, includes, app_resp, prefix):
         """Here we replace all ssi include in our application body with snippets
-        (extracted by xpath expression) from proxy application body, and set
+        (extracted by xpath expression) from proxy applications body, and set
         resulting html into proxy response object.
         """
-        proxy_content = safe_unicode(self._get_response_body(proxy_resp))
-        proxy_dom = etree.parse(StringIO(proxy_content), etree.HTMLParser())
+        # keep track of already fetched external pages
+        fetched = {}
+        # keep track of inserted url + xpath pairs
+        injected = []
+
         app_content = safe_unicode(app_resp.body)
 
-        injected = []
         for include in includes:
             # check if we already injected given include
             virtual = include['include']
             if virtual in injected:
                 continue
+
+            # check if we already fetched this page
+            url = include['url']
+            if url in fetched:
+                proxy_dom = fetched[url]
+            else:
+                proxy_resp = self._do_proxy_call(environ, app_resp, url, prefix)
+                proxy_content = safe_unicode(self._get_response_body(
+                    proxy_resp))
+                proxy_dom = etree.parse(StringIO(proxy_content),
+                    etree.HTMLParser())
+
+                # remember our proxy dom
+                fetched[url] = proxy_dom
 
             # get xpath-ed snippet from proxy response body
             snippet = u''
@@ -90,54 +144,18 @@ class ExternalAppMiddleware(object):
         proxy_resp.body = app_content.encode('utf-8')
         return proxy_resp
 
-    def _extract_ssi_includes(self, request, response):
-        # do parse if non html response
-        if not response.content_type or \
-           not response.content_type.startswith('text/html'):
-            return []
-
-        # TODO: process external app url from include, for now we only
-        # get it from ExternalApp header sent to us from zope
-        includes = []
-        for include in re.finditer(INCLUDE_PATTERN,
-            safe_unicode(response.body)):
-            virtual = unquote(include.group(1))
-
-            # extract xpath, if no xpath found - insert full page body
-            if u'filter_xpath' in virtual:
-                xpath = virtual[
-                    virtual.index(u'filter_xpath')+len(u'filter_xpath='):]
-                url = virtual[:virtual.index(u'filter_xpath')]
-            else:
-                xpath = u'//body'
-                url = virtual
-
-            includes.append({
-                'include': include.group(0),
-                'url': url,
-                'xpath': xpath,
-            })
-
-        return includes
-
-    def _proxy_app_url(self, request, response):
-        """Returns root proxy app url and traversal path to exteranl app within
-        main application.
-        """
-        url = prefix = None
-        if response.headers.get('X-PROXY-TO'):
-            url, prefix = response.headers['X-PROXY-TO'].split('||')
-            # make sure our proxy url has no trailing slash
-            if url.endswith('/'):
-                url = url[:-1]
-        return url, prefix
-
     def _copy_user_headers(self, _from, _to):
         """Copies user related headers from response to request"""
         for header in ('X-ZOPE-USER', 'X-ZOPE-USER-GROUPS',
             'X-ZOPE-USER-ROLES'):
             if _from.headers.get(header):
                 _to.headers[header] = _from.headers[header]
+
+    def _purge_cache_headers(self, request):
+        """Remove any caching related headers."""
+        for header in ('If-Modified-Since', 'If-None-Match'):
+            if request.headers.has_key(header):
+                del request.headers[header]
 
     def _do_proxy_call(self, environ, orig_response, url, prefix):
         # TODO: wrap it all into try/except and display main app page with
@@ -152,7 +170,11 @@ class ExternalAppMiddleware(object):
         environ['wsgi.input'].seek(0)
 
         proxy_req = Request(environ.copy())
+
+        # tweak proxy request headers a bit
         self._copy_user_headers(orig_response, proxy_req)
+        self._purge_cache_headers(proxy_req)
+
         proxy_resp = proxy_req.get_response(middleware)
 
         # ignore redirects

@@ -17,8 +17,8 @@ class ExternalAppView(BrowserView):
 
             # set http headers to use in proxy wsgi middleware
             # TODO: ensure prefix is proper in virtual host setup
-            response.setHeader('X-PROXY-TO', '%s||%s' % (context.url,
-                '/'.join(context.getPhysicalPath())))
+            response.setHeader('X-PROXY-PREFIX',
+                '/'.join(context.getPhysicalPath()))
 
             # set user related headers for external app to login plone user
             user = getSecurityManager().getUser()
