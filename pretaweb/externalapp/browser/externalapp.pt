@@ -3,13 +3,15 @@
 <div metal:fill-slot="content-core">
 <tal:defines define="body options/body|nothing">
 
-  <div tal:replace="structure body"
+  <div tal:content="structure body"
        tal:condition="body">Page Body</div>
 
   <a title=""
      href="#"
+     class="external-app-class"
+     tal:define="klass context/html_class|nothing"
      tal:attributes="href string:${context/absolute_url}/;
-                     id context/getId"
+                     class python:klass or None"
      tal:condition="not:body">Launch App</a>
 
 </tal:defines>

@@ -18,6 +18,17 @@ ExternalAppSchema = folder.ATFolderSchema.copy() + atapi.Schema((
     # -*- Your Archetypes field definitions here ... -*-
 
     atapi.StringField(
+        'html_class',
+        storage=atapi.AnnotationStorage(),
+        widget=atapi.StringWidget(
+            label=_(u"HTML Wrapper Class"),
+            description=_(u"It is used on External App object view to bind Diazo xml rules."),
+        ),
+        required=True,
+    ),
+
+
+    atapi.StringField(
         'url',
         storage=atapi.AnnotationStorage(),
         widget=atapi.StringWidget(
@@ -76,6 +87,8 @@ class ExternalApp(folder.ATFolder):
     description = atapi.ATFieldProperty('description')
 
     # -*- Your ATSchema to Python Property Bridges Here ... -*-
+    html_class = atapi.ATFieldProperty('html_class')
+
     url = atapi.ATFieldProperty('url')
 
     username = atapi.ATFieldProperty('username')

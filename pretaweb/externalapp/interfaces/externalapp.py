@@ -10,6 +10,12 @@ class IExternalApp(Interface):
     """External Application Entry Point"""
 
     # -*- schema definition goes here -*-
+    html_class = schema.TextLine(
+        title=_(u"HTML Wrapper Class"),
+        required=True,
+        description=_(u"It is used on External App object view to bind Diazo xml rules."),
+    )
+#
     url = schema.TextLine(
         title=_(u"URL"),
         required=True,
