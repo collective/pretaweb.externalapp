@@ -58,6 +58,7 @@ setup(name='pretaweb.externalapp',
           'setuptools',
           # -*- Extra requirements: -*-
           'WSGIProxy',
+          'WebOb',
       ],
       tests_require=tests_require,
       extras_require=dict(tests=tests_require),
