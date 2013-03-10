@@ -35,7 +35,7 @@ ExternalAppSchema = folder.ATFolderSchema.copy() + atapi.Schema((
             label=_(u"URL"),
             description=_(u"External Application Root URL"),
         ),
-        required=True,
+        required=False,
         default=_(u"http://"),
         validators=('isURL'),
     ),

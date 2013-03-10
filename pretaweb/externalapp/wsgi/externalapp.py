@@ -3,6 +3,7 @@ import gzip
 from urlparse import urlparse
 from urllib import unquote
 from lxml import etree
+from lxml.html import document_fromstring, tostring
 from StringIO import StringIO
 
 from webob import Request
@@ -13,10 +14,6 @@ from diazo.compiler import compile_theme
 from Products.CMFPlone.utils import safe_unicode
 from .rules import DEFAULT_DIAZO_RULES
 
-
-# TODO: fix <base> tag either on plone level with custom viewlet or with diazo
-# rules, so we always have /app/ and if needed sub-path to current page within
-# external app to make all relative urls on a page work
 
 INCLUDE_PATTERN = re.compile(ur'<!--#include\s+virtual="([^"]*)"\s*-->')
 
@@ -51,7 +48,8 @@ class ExternalAppMiddleware(object):
             return resp(environ, start_response)
 
         # parse, fetch and inject SSI includes
-        proxy_resp = self._inject_ssi_includes(environ, includes, resp, prefix)
+        proxy_resp = self._inject_ssi_includes(environ, includes, req, resp,
+            prefix)
 
         return proxy_resp(environ, start_response)
 
@@ -97,7 +95,8 @@ class ExternalAppMiddleware(object):
 
         return includes
 
-    def _inject_ssi_includes(self, environ, includes, app_resp, prefix):
+    def _inject_ssi_includes(self, environ, includes, request, app_resp,
+                             prefix):
         """Here we replace all ssi include in our application body with snippets
         (extracted by xpath expression) from proxy applications body, and set
         resulting html into proxy response object.
@@ -108,6 +107,7 @@ class ExternalAppMiddleware(object):
         injected = []
 
         app_content = safe_unicode(app_resp.body)
+        orig_base = request.host_url + prefix
 
         for include in includes:
             # check if we already injected given include
@@ -121,10 +121,16 @@ class ExternalAppMiddleware(object):
                 proxy_dom = fetched[url]
             else:
                 proxy_resp = self._do_proxy_call(environ, app_resp, url, prefix)
+
+                # if we have non-html response, return it w/o further processing
+                if not proxy_resp.content_type or \
+                   not proxy_resp.content_type.startswith('text/html'):
+                    return proxy_resp
+
                 proxy_content = safe_unicode(self._get_response_body(
                     proxy_resp))
-                proxy_dom = etree.parse(StringIO(proxy_content),
-                    etree.HTMLParser())
+                proxy_dom = document_fromstring(proxy_content, base_url=url)
+                self._rewrite_links(proxy_dom, orig_base, url)
 
                 # remember our proxy dom
                 fetched[url] = proxy_dom
@@ -133,7 +139,7 @@ class ExternalAppMiddleware(object):
             snippet = u''
             found = proxy_dom.xpath(include['xpath'])
             if len(found) > 0:
-                snippet = u''.join([etree.tostring(f) for f in found])
+                snippet = u''.join([safe_unicode(tostring(f)) for f in found])
 
             # insert proxy piece into app body
             app_content = app_content.replace(virtual, snippet)
@@ -143,6 +149,28 @@ class ExternalAppMiddleware(object):
 
         proxy_resp.body = app_content.encode('utf-8')
         return proxy_resp
+
+    def _rewrite_links(self, dom, orig_base, proxied_base):
+        """Rewrite links to make it work within our site."""
+        exact_proxied_base = proxied_base
+        if not proxied_base.endswith('/'):
+            proxied_base += '/'
+        exact_orig_base = orig_base
+        if not orig_base.endswith('/'):
+            orig_base += '/'
+
+        def link_repl_func(link):
+            """Rewrites a link to point to this proxy"""
+            if link == exact_proxied_base:
+                return exact_orig_base
+            if not link.startswith(proxied_base):
+                # External link, so we don't rewrite it
+                return link
+            new = orig_base + link[len(proxied_base):]
+            return new
+
+        dom.make_links_absolute()
+        dom.rewrite_links(link_repl_func)
 
     def _copy_user_headers(self, _from, _to):
         """Copies user related headers from response to request"""
