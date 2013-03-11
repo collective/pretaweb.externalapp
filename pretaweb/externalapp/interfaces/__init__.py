@@ -1,2 +1,2 @@
 # -*- extra stuff goes here -*-
-from externalapp import IExternalApp
+from externalapp import IExternalApp, externalappMessageFactory

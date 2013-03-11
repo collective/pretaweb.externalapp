@@ -2,7 +2,15 @@ from zope.interface import Interface
 # -*- Additional Imports Here -*-
 from zope import schema
 
-from pretaweb.externalapp import externalappMessageFactory as _
+from zope.i18nmessageid import MessageFactory
+# Define a message factory for when this product is internationalised.
+# This will be imported with the special name "_" in most modules. Strings
+# like _(u"message") will then be extracted by i18n tools for translation.
+
+externalappMessageFactory = MessageFactory('pretaweb.externalapp')
+
+
+_ = externalappMessageFactory
 
 
 

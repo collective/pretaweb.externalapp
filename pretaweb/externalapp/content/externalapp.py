@@ -8,7 +8,7 @@ from Products.ATContentTypes.content import folder
 from Products.ATContentTypes.content import schemata
 
 # -*- Message Factory Imported Here -*-
-from pretaweb.externalapp import externalappMessageFactory as _
+from pretaweb.externalapp.interfaces import externalappMessageFactory as _
 
 from pretaweb.externalapp.interfaces import IExternalApp
 from pretaweb.externalapp.config import PROJECTNAME

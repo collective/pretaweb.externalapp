@@ -9,9 +9,8 @@ from StringIO import StringIO
 from webob import Request
 from wsgiproxy.app import WSGIProxyApp
 from wsgiproxy.middleware import WSGIProxyMiddleware
-from diazo.compiler import compile_theme
 
-from Products.CMFPlone.utils import safe_unicode
+#from Products.CMFPlone.utils import safe_unicode
 from .rules import DEFAULT_DIAZO_RULES
 
 
@@ -233,6 +232,7 @@ class ExternalAppMiddleware(object):
         theme = StringIO(safe_unicode(main_response.body))
 
         # compile our theme
+        from diazo.compiler import compile_theme
         compiled_theme = compile_theme(rules, theme,
             xsl_params={
                 'external_app_url': proxy_url,

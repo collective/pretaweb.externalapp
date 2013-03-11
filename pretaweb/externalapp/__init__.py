@@ -1,19 +1,11 @@
 """Main product initializer
 """
-from wsgi.externalapp import ExternalAppMiddleware, make_externalapp_middleware
+#from wsgi.externalapp import ExternalAppMiddleware, make_externalapp_middleware
 
 
-from zope.i18nmessageid import MessageFactory
 from pretaweb.externalapp import config
 
-from Products.Archetypes import atapi
-from Products.CMFCore import utils
 
-# Define a message factory for when this product is internationalised.
-# This will be imported with the special name "_" in most modules. Strings
-# like _(u"message") will then be extracted by i18n tools for translation.
-
-externalappMessageFactory = MessageFactory('pretaweb.externalapp')
 
 def initialize(context):
     """Initializer called when used as a Zope 2 product.
@@ -31,6 +23,9 @@ def initialize(context):
     # during ZCML processing, but we do it here again to be explicit. Of
     # course, even if we import the module several times, it is only run
     # once.
+
+    from Products.Archetypes import atapi
+    from Products.CMFCore import utils
 
     content_types, constructors, ftis = atapi.process_types(
         atapi.listTypes(config.PROJECTNAME),
