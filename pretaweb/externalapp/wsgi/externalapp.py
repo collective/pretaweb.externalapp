@@ -10,7 +10,19 @@ from webob import Request
 from wsgiproxy.app import WSGIProxyApp
 from wsgiproxy.middleware import WSGIProxyMiddleware
 
-#from Products.CMFPlone.utils import safe_unicode
+try:
+    from Products.CMFPlone.utils import safe_unicode
+except ImportError:
+    def safe_unicode(value, encoding='utf-8'):
+        if isinstance(value, unicode):
+            return value
+        elif isinstance(value, basestring):
+            try:
+                value = unicode(value, encoding)
+            except (UnicodeDecodeError):
+                value = value.decode('utf-8', 'replace')
+        return value
+
 from .rules import DEFAULT_DIAZO_RULES
 
 
@@ -39,7 +51,8 @@ class ExternalAppMiddleware(object):
 
         # after main app read input restore file pointer
         # so we can check for includes
-        environ['wsgi.input'].seek(0)
+        # import pdb;pdb.set_trace()
+        # environ['wsgi.input'].seek(0)
 
         # extract SSI includes to see if we need to anything at all
         includes = self._extract_ssi_includes(req, resp)
@@ -194,7 +207,7 @@ class ExternalAppMiddleware(object):
 
         # after parse includes process reads input restore file pointer so proxy
         # can still read all post data
-        environ['wsgi.input'].seek(0)
+        # environ['wsgi.input'].seek(0)
 
         proxy_req = Request(environ.copy())
 
