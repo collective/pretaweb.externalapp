@@ -13,6 +13,10 @@ from wsgiproxy.middleware import WSGIProxyMiddleware
 #from Products.CMFPlone.utils import safe_unicode
 from .rules import DEFAULT_DIAZO_RULES
 
+import logging
+
+log = logging.getLogger('pretaweb.externalapp')
+
 
 INCLUDE_PATTERN = re.compile(ur'<!--#include\s+virtual="([^"]*)"\s*-->')
 
@@ -26,6 +30,13 @@ class ExternalAppMiddleware(object):
         self.app = app
 
     def __call__(self, environ, start_response):
+
+        #First we been to cache the request body
+        # HACK - we should do this lazily and to disk?
+        post = StringIO(environ['wsgi.input'])
+        environ['wsgi.input'] = post
+
+
         # get response from main app
         req = Request(environ.copy())
         resp = req.get_response(self.app)
@@ -39,7 +50,7 @@ class ExternalAppMiddleware(object):
 
         # after main app read input restore file pointer
         # so we can check for includes
-        environ['wsgi.input'].seek(0)
+        #environ['wsgi.input'].seek(0)
 
         # extract SSI includes to see if we need to anything at all
         includes = self._extract_ssi_includes(req, resp)
@@ -187,6 +198,7 @@ class ExternalAppMiddleware(object):
     def _do_proxy_call(self, environ, orig_response, url, prefix):
         # TODO: wrap it all into try/except and display main app page with
         # traceback in it
+        log.debug('SSI proxy call to "%s"'%url)
         proxy = WSGIProxyApp(url)
         o = urlparse(url)
         middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix,
@@ -268,3 +280,34 @@ class ExternalAppMiddleware(object):
 
 def make_externalapp_middleware(app, global_conf=None, **kw):
     return ExternalAppMiddleware(app, **kw)
+
+def safe_unicode(value, encoding='utf-8'):
+    """Converts a value to unicode, even it is already a unicode string.
+
+        >>> from Products.CMFPlone.utils import safe_unicode
+
+        >>> safe_unicode('spam')
+        u'spam'
+        >>> safe_unicode(u'spam')
+        u'spam'
+        >>> safe_unicode(u'spam'.encode('utf-8'))
+        u'spam'
+        >>> safe_unicode('\xc6\xb5')
+        u'\u01b5'
+        >>> safe_unicode(u'\xc6\xb5'.encode('iso-8859-1'))
+        u'\u01b5'
+        >>> safe_unicode('\xc6\xb5', encoding='ascii')
+        u'\u01b5'
+        >>> safe_unicode(1)
+        1
+        >>> print safe_unicode(None)
+        None
+    """
+    if isinstance(value, unicode):
+        return value
+    elif isinstance(value, basestring):
+        try:
+            value = unicode(value, encoding)
+        except (UnicodeDecodeError):
+            value = value.decode('utf-8', 'replace')
+    return value

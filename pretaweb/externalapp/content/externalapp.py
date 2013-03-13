@@ -27,39 +27,41 @@ ExternalAppSchema = folder.ATFolderSchema.copy() + atapi.Schema((
         required=True,
     ),
 
+    # We don't need these anymore
 
-    atapi.StringField(
-        'url',
-        storage=atapi.AnnotationStorage(),
-        widget=atapi.StringWidget(
-            label=_(u"URL"),
-            description=_(u"External Application Root URL"),
-        ),
-        required=False,
-        default=_(u"http://"),
-        validators=('isURL'),
-    ),
-
-
-    atapi.StringField(
-        'username',
-        storage=atapi.AnnotationStorage(),
-        widget=atapi.StringWidget(
-            label=_(u"Username"),
-            description=_(u"Username to Login into External Application"),
-        ),
-    ),
-
-
-    atapi.StringField(
-        'password',
-        storage=atapi.AnnotationStorage(),
-        widget=atapi.PasswordWidget(
-            label=_(u"Password"),
-            description=_(u"Password to Login into External Application"),
-        ),
-    ),
-
+    #
+    # atapi.StringField(
+    #     'url',
+    #     storage=atapi.AnnotationStorage(),
+    #     widget=atapi.StringWidget(
+    #         label=_(u"URL"),
+    #         description=_(u"External Application Root URL"),
+    #     ),
+    #     required=False,
+    #     default=_(u"http://"),
+    #     validators=('isURL'),
+    # ),
+    #
+    #
+    # atapi.StringField(
+    #     'username',
+    #     storage=atapi.AnnotationStorage(),
+    #     widget=atapi.StringWidget(
+    #         label=_(u"Username"),
+    #         description=_(u"Username to Login into External Application"),
+    #     ),
+    # ),
+    #
+    #
+    # atapi.StringField(
+    #     'password',
+    #     storage=atapi.AnnotationStorage(),
+    #     widget=atapi.PasswordWidget(
+    #         label=_(u"Password"),
+    #         description=_(u"Password to Login into External Application"),
+    #     ),
+    # ),
+    #
 
 ))
 
