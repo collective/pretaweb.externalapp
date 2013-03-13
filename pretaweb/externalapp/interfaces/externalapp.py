@@ -24,21 +24,21 @@ class IExternalApp(Interface):
         description=_(u"It is used on External App object view to bind Diazo xml rules."),
     )
 #
-    url = schema.TextLine(
-        title=_(u"URL"),
-        required=True,
-        description=_(u"External Application Root URL"),
-    )
-#
-    username = schema.TextLine(
-        title=_(u"Username"),
-        required=False,
-        description=_(u"Username to Login into External Application"),
-    )
-#
-    password = schema.TextLine(
-        title=_(u"Password"),
-        required=False,
-        description=_(u"Password to Login into External Application"),
-    )
-#
+#     url = schema.TextLine(
+#         title=_(u"URL"),
+#         required=True,
+#         description=_(u"External Application Root URL"),
+#     )
+# #
+#     username = schema.TextLine(
+#         title=_(u"Username"),
+#         required=False,
+#         description=_(u"Username to Login into External Application"),
+#     )
+# #
+#     password = schema.TextLine(
+#         title=_(u"Password"),
+#         required=False,
+#         description=_(u"Password to Login into External Application"),
+#     )
+# #

@@ -90,12 +90,12 @@ class ExternalApp(folder.ATFolder):
 
     # -*- Your ATSchema to Python Property Bridges Here ... -*-
     html_class = atapi.ATFieldProperty('html_class')
-
-    url = atapi.ATFieldProperty('url')
-
-    username = atapi.ATFieldProperty('username')
-
-    password = atapi.ATFieldProperty('password')
+    #
+    # url = atapi.ATFieldProperty('url')
+    #
+    # username = atapi.ATFieldProperty('username')
+    #
+    # password = atapi.ATFieldProperty('password')
 
 
 atapi.registerType(ExternalApp, PROJECTNAME)

@@ -63,7 +63,7 @@ class ExternalAppMiddleware(object):
         # after main app read input restore file pointer
         # so we can check for includes
         # import pdb;pdb.set_trace()
-        # environ['wsgi.input'].seek(0)
+        environ['wsgi.input'].seek(0)
 
         # extract SSI includes to see if we need to anything at all
         includes = self._extract_ssi_includes(req, resp)
