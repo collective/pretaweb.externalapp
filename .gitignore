@@ -1,0 +1,11 @@
+.installed.cfg
+.mr.developer.cfg
+bin
+bootstrap.py
+develop-eggs
+eggs
+*.tmproj
+parts
+plone.ini
+src
+var
