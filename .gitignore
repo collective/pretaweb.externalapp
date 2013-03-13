@@ -9,3 +9,5 @@ parts
 plone.ini
 src
 var
+*.pyc
+*.egg
