@@ -66,6 +66,8 @@ setup(name='pretaweb.externalapp',
       test_suite='pretaweb.externalapp.tests.test_docs.test_suite',
       entry_points="""
       # -*- entry_points -*-
+      [paste.app_factory]
+      wsgiproxy = pretaweb.externalapp.wsgi.wsgiproxypreservehost:make_app
       [z3c.autoinclude.plugin]
       target = plone
       [paste.filter_app_factory]
