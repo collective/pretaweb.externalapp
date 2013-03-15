@@ -32,6 +32,8 @@ log = logging.getLogger('pretaweb.externalapp')
 
 INCLUDE_PATTERN = re.compile(ur'<!--#include\s+virtual="([^"]*)"\s*-->')
 
+
+
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required
     sends proxy request to another url, applying xslt transformation
@@ -43,15 +45,20 @@ class ExternalAppMiddleware(object):
 
     def __call__(self, environ, start_response):
 
+        
         #First we been to cache the request body
         # HACK - we should do this lazily and to disk?
-        post = StringIO(environ['wsgi.input'])
-        environ['wsgi.input'] = post
 
+        postbuf = environ['wsgi.input'].read()
 
         # get response from main app
-        req = Request(environ.copy())
+        reqenvironment = environ.copy()
+        reqenvironment['wsgi.input'] = StringIO(postbuf)
+
+        req = Request(reqenvironment)
         resp = req.get_response(self.app)
+
+        environ['wsgi.input'] = StringIO(postbuf)
 
         # this will tell us if we need to proxy request or not
         prefix = self._proxy_app_prefix(req, resp)

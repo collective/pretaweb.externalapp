@@ -7,7 +7,6 @@ class WSGIProxyPreserveHost (WSGIProxyApp):
         super(WSGIProxyPreserveHost, self).setup_forwarded_environ(environ)
         if host is not None:
         	environ["HTTP_HOST"] = host
-        from pprint import pprint
 
 def make_app(
     global_conf,
