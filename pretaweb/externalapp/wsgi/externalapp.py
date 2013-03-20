@@ -233,7 +233,7 @@ class ExternalAppMiddleware(object):
             reqenv['PATH_INFO'] = reqenv['PATH_INFO'][len(prefix):]
             reqenv['RAW_URI'] = reqenv['RAW_URI'][len(prefix):]
 
-        proxy_req = Request(environ.copy())
+        proxy_req = Request(reqenv)
 
         # tweak proxy request headers a bit
         self._copy_user_headers(orig_response, proxy_req)
