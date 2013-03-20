@@ -221,12 +221,17 @@ class ExternalAppMiddleware(object):
         log.debug('SSI proxy call to "%s"'%url)
         proxy = WSGIProxyApp(url)
         o = urlparse(url)
-        middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix,
+        middleware = WSGIProxyMiddleware(proxy, 
             scheme=o.scheme, domain=o.hostname, port=(o.port or '80'))
 
         # after parse includes process reads input restore file pointer so proxy
         # can still read all post data
         # environ['wsgi.input'].seek(0)
+
+        reqenv = environ.copy()
+        if reqenv['PATH_INFO'].startswith(prefix):
+            reqenv['PATH_INFO'] = reqenv['PATH_INFO'][len(prefix):]
+            reqenv['RAW_URI'] = reqenv['RAW_URI'][len(prefix):]
 
         proxy_req = Request(environ.copy())
 
