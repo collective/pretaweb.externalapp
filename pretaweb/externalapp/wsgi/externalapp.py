@@ -108,7 +108,7 @@ class ExternalAppMiddleware(object):
             if u'filter_xpath' in virtual:
                 xpath = virtual[
                     virtual.index(u'filter_xpath')+len(u'filter_xpath='):]
-                url = virtual[:virtual.index(u'filter_xpath')]
+                url = virtual[:virtual.index(u'?;filter_xpath')]
             else:
                 xpath = u'//body'
                 url = virtual
@@ -205,7 +205,7 @@ class ExternalAppMiddleware(object):
     def _copy_user_headers(self, _from, _to):
         """Copies user related headers from response to request"""
         for header in ('X-ZOPE-USER', 'X-ZOPE-USER-GROUPS',
-            'X-ZOPE-USER-ROLES'):
+            'X-ZOPE-USER-ROLES', 'X-PROXY-PREFIX'):
             if _from.headers.get(header):
                 _to.headers[header] = _from.headers[header]
 
