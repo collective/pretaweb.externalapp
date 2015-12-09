@@ -32,6 +32,8 @@ log = logging.getLogger('pretaweb.externalapp')
 
 INCLUDE_PATTERN = re.compile(ur'<!--#include\s+virtual="([^"]*)"\s*-->')
 
+
+
 class ExternalAppMiddleware(object):
     """Intercepts headers from application and if required
     sends proxy request to another url, applying xslt transformation
@@ -43,15 +45,20 @@ class ExternalAppMiddleware(object):
 
     def __call__(self, environ, start_response):
 
+        
         #First we been to cache the request body
         # HACK - we should do this lazily and to disk?
-        post = StringIO(environ['wsgi.input'])
-        environ['wsgi.input'] = post
 
+        postbuf = environ['wsgi.input'].read()
 
         # get response from main app
-        req = Request(environ.copy())
+        reqenvironment = environ.copy()
+        reqenvironment['wsgi.input'] = StringIO(postbuf)
+
+        req = Request(reqenvironment)
         resp = req.get_response(self.app)
+
+        environ['wsgi.input'] = StringIO(postbuf)
 
         # this will tell us if we need to proxy request or not
         prefix = self._proxy_app_prefix(req, resp)
@@ -101,7 +108,7 @@ class ExternalAppMiddleware(object):
             if u'filter_xpath' in virtual:
                 xpath = virtual[
                     virtual.index(u'filter_xpath')+len(u'filter_xpath='):]
-                url = virtual[:virtual.index(u'filter_xpath')]
+                url = virtual[:virtual.index(u'?;filter_xpath')]
             else:
                 xpath = u'//body'
                 url = virtual
@@ -198,7 +205,7 @@ class ExternalAppMiddleware(object):
     def _copy_user_headers(self, _from, _to):
         """Copies user related headers from response to request"""
         for header in ('X-ZOPE-USER', 'X-ZOPE-USER-GROUPS',
-            'X-ZOPE-USER-ROLES'):
+            'X-ZOPE-USER-ROLES', 'X-PROXY-PREFIX'):
             if _from.headers.get(header):
                 _to.headers[header] = _from.headers[header]
 
@@ -214,14 +221,19 @@ class ExternalAppMiddleware(object):
         log.debug('SSI proxy call to "%s"'%url)
         proxy = WSGIProxyApp(url)
         o = urlparse(url)
-        middleware = WSGIProxyMiddleware(proxy, pop_prefix=prefix,
+        middleware = WSGIProxyMiddleware(proxy, 
             scheme=o.scheme, domain=o.hostname, port=(o.port or '80'))
 
         # after parse includes process reads input restore file pointer so proxy
         # can still read all post data
         # environ['wsgi.input'].seek(0)
 
-        proxy_req = Request(environ.copy())
+        reqenv = environ.copy()
+        if reqenv['PATH_INFO'].startswith(prefix):
+            reqenv['PATH_INFO'] = reqenv['PATH_INFO'][len(prefix):]
+            reqenv['RAW_URI'] = reqenv['RAW_URI'][len(prefix):]
+
+        proxy_req = Request(reqenv)
 
         # tweak proxy request headers a bit
         self._copy_user_headers(orig_response, proxy_req)
